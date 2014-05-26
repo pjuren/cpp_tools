@@ -35,6 +35,7 @@
 #ifndef INTERVAL_TREE_HPP
 #define INTERVAL_TREE_HPP
 
+// stl includes
 #include <vector>
 #include <string>
 #include <exception>
@@ -65,10 +66,10 @@ private:
 template <class T, class R>
 class IntervalComparator {
 public:
-	IntervalComparator(R (*compFunc)(T)) { this->compFunc = compFunc; }
+	IntervalComparator(R (*compFunc)(const T&)) { this->compFunc = compFunc; }
   bool operator()(T i1, T i2){ return this->compFunc(i1) < this->compFunc(i2); } 
 private:
-	R (*compFunc)(T);
+	R (*compFunc)(const T&);
 };
 
 /**
@@ -77,15 +78,15 @@ private:
 template <class T, class R>
 class IntervalTreeNode {
 public :
-  IntervalTreeNode(const std::vector<T>, const double mid, R (*getStart)(T),
-                   R (*getEnd)(T));
+  IntervalTreeNode(const std::vector<T>, const double mid, R (*getStart)(const T&),
+                   R (*getEnd)(const T&));
   std::string toString();
   std::vector<T> starts;
   std::vector<T> ends;
   double mid;
 private:
-	R (*getStart)(T); 
-	R (*getEnd)(T);
+	R (*getStart)(const T&);
+	R (*getEnd)(const T&);
 };
 
 /**
@@ -94,8 +95,8 @@ private:
 template <class T, class R>
 class IntervalTree {
 public:
-	IntervalTree(const std::vector<T> &intervals, R (*getStart)(T),
-	             R (*getEnd)(T));
+	IntervalTree(const std::vector<T> &intervals, R (*getStart)(const T&),
+	             R (*getEnd)(const T&));
 	~IntervalTree();
 	
 	// inspectors
@@ -108,8 +109,8 @@ private:
 	IntervalTreeNode<T,R>* data;
 	IntervalTree<T,R>* left;
 	IntervalTree<T,R>* right; 
-	R (*getStart)(T); 
-	R (*getEnd)(T);
+	R (*getStart)(const T&);
+	R (*getEnd)(const T&);
 };
 
 /******************************************************************************
@@ -122,15 +123,15 @@ private:
  */
 template <class T, class R> 
 IntervalTreeNode<T,R>::IntervalTreeNode(const std::vector<T> intervals,
-                                        const double mid, R (*getStart)(T),
-                                        R (*getEnd)(T)) {
+                                        const double mid, R (*getStart)(const T&),
+                                        R (*getEnd)(const T&)) {
 	this->getStart = getStart;
 	this->getEnd = getEnd;
 	IntervalComparator<T,R> startComp = IntervalComparator<T,R>(getStart);
 	IntervalComparator<T,R> endComp = IntervalComparator<T,R>(getEnd);
-	this->starts = vector<T> (intervals);
+	this->starts = std::vector<T> (intervals);
 	sort (this->starts.begin(), this->starts.end(), startComp);
-	this->ends = vector<T> (intervals);
+	this->ends = std::vector<T> (intervals);
 	sort (this->ends.begin(), this->ends.end(), endComp);
 	this->mid = mid;
 }
@@ -169,16 +170,15 @@ IntervalTreeNode<T,R>::toString() {
  */
 template <class T, class R> 
 IntervalTree<T,R>::IntervalTree(const std::vector<T> &intervals,
-                                R (*getStart)(T), R (*getEnd)(T)) {
+                                R (*getStart)(const T&), R (*getEnd)(const T&)) {
   this->left = NULL;
   this->right = NULL;
   this->getStart = getStart;
   this->getEnd = getEnd;
   IntervalComparator<T,R> startComp = IntervalComparator<T,R>(getStart);
-  IntervalComparator<T,R> endComp = IntervalComparator<T,R>(getEnd);
 
   // because we're going to sort them, and want to force const on paramater
-  std::vector<T> cIntervals = vector<T>(intervals);
+  std::vector<T> cIntervals = std::vector<T>(intervals);
 	
   // can't build a tree with no intervals...
   if (intervals.size() <= 0)
@@ -241,9 +241,6 @@ IntervalTree<T,R>::~IntervalTree() {
 template <class T, class R> 
 const std::vector<T>
 IntervalTree<T,R>::intersectingPoint(const R point) const {
-	// perfect match
-	if (point == this->data->mid) return this->data->ends;
-
 	if (point > this->data->mid) {
 		// we know all intervals in this->data begin before p (if they began 
 		// after p, they would have not included mid) we just need to find 
@@ -264,7 +261,6 @@ IntervalTree<T,R>::intersectingPoint(const R point) const {
 		}
 		return endAfterP;
 	}
-	
 	if (point < this->data->mid) {
 		// we know all intervals in this->data end after p (if they ended before
 		// p, they would have not included mid) we just need to find those that 
@@ -285,6 +281,10 @@ IntervalTree<T,R>::intersectingPoint(const R point) const {
 		}
 		return startBeforeP;
 	}
+
+	// must be a perfect match, since point is neither > nor < mid
+	assert(point == this->data->mid);
+	return this->data->ends;
 }
 
 /**
