@@ -78,8 +78,11 @@ private:
 template <class T, class R>
 class IntervalTreeNode {
 public :
+  IntervalTreeNode();
   IntervalTreeNode(const std::vector<T>, const double mid, R (*getStart)(const T&),
                    R (*getEnd)(const T&));
+  IntervalTreeNode(const IntervalTreeNode<T,R> &n);
+  ~IntervalTreeNode();
   std::string toString();
   std::vector<T> starts;
   std::vector<T> ends;
@@ -95,27 +98,37 @@ private:
 template <class T, class R>
 class IntervalTree {
 public:
-	IntervalTree(const std::vector<T> &intervals, R (*getStart)(const T&),
-	             R (*getEnd)(const T&));
-	~IntervalTree();
-	
-	// inspectors
-	const std::vector<T> intersectingPoint(const R point) const;
-	const std::vector<T> intersectingInterval(const R start, const R end) const;
-	const std::vector<T> squash() const;
-	const int size() const; 
-	const std::string toString() const;
+  IntervalTree();
+  IntervalTree(const std::vector<T> &intervals, R (*getStart)(const T&),
+               R (*getEnd)(const T&));
+  IntervalTree(const IntervalTree<T,R> &t);
+  ~IntervalTree();
+
+  // inspectors
+  const std::vector<T> intersectingPoint(const R point) const;
+  const std::vector<T> intersectingInterval(const R start, const R end) const;
+  const std::vector<T> squash() const;
+  const int size() const;
+  const std::string toString() const;
 private:
-	IntervalTreeNode<T,R>* data;
-	IntervalTree<T,R>* left;
-	IntervalTree<T,R>* right; 
-	R (*getStart)(const T&);
-	R (*getEnd)(const T&);
+  IntervalTreeNode<T,R>* data;
+  IntervalTree<T,R>* left;
+  IntervalTree<T,R>* right;
+  R (*getStart)(const T&);
+  R (*getEnd)(const T&);
 };
 
 /******************************************************************************
  * IntervalTreeNode class implementation
  *****************************************************************************/
+/**
+ * \brief default constructor
+ */
+template <class T, class R>
+IntervalTreeNode<T,R>::IntervalTreeNode() : mid(0), getStart(NULL),
+                                            getEnd(NULL),
+                                            starts(std::vector<T>()),
+                                            ends(std::vector<T>())  {;}
 
 /**
  * \brief IntervalTreeNode constructor
@@ -134,6 +147,27 @@ IntervalTreeNode<T,R>::IntervalTreeNode(const std::vector<T> intervals,
 	this->ends = std::vector<T> (intervals);
 	sort (this->ends.begin(), this->ends.end(), endComp);
 	this->mid = mid;
+}
+
+/**
+ * \brief Copy constructor
+ */
+template <class T, class R>
+IntervalTreeNode<T,R>::IntervalTreeNode(const IntervalTreeNode<T,R> &n) {
+  // shallow copy is fine here
+  this->starts = n.starts;
+  this->ends = n.ends;
+  this->mid = n.mid;
+  this->getStart = n.getStart;
+  this->getEnd = n.getEnd;
+}
+
+/**
+ * \brief destructor
+ */
+template <class T, class R>
+IntervalTreeNode<T,R>::~IntervalTreeNode() {
+  // nothing special to do..
 }
 
 /**
@@ -162,6 +196,13 @@ IntervalTreeNode<T,R>::toString() {
 /******************************************************************************
  * IntervalTree class implementation
  *****************************************************************************/
+
+/**
+ * \brief default constructor
+ */
+template <class T, class R>
+IntervalTree<T,R>::IntervalTree() : data(NULL), left(NULL), right(NULL),
+                                    getStart(NULL), getEnd(NULL) {;}
 
 /**
  * \brief Constructor for IntervalTree.
@@ -222,14 +263,34 @@ IntervalTree<T,R>::IntervalTree(const std::vector<T> &intervals,
   this->data = new IntervalTreeNode<T,R>(here, mid, this->getStart, this->getEnd);
 }
 
-/****
- * @summary: Destructor for IntervalTree
+/**
+ * \brief Copy constructor
+ */
+template <class T, class R>
+IntervalTree<T,R>::IntervalTree(const IntervalTree<T,R> &t) {
+  // deep copy data tree node
+  if (t.data == NULL) this->data = NULL;
+  else this->data = new IntervalTreeNode<T,R>(*(t.data));
+
+  // deep copy left and right branches
+  if (t.left == NULL) this->left = NULL;
+  else this->left = new IntervalTree(*(t.left));
+  if (t.right == NULL) this->right = NULL;
+  else this->right = new IntervalTree(*(t.right));
+
+  // function pointers can be copied shallow
+  this->getStart = t.getStart;
+  this->getEnd = t.getEnd;
+}
+
+/**
+ * \brief Destructor for IntervalTree
  */
 template <class T, class R> 
 IntervalTree<T,R>::~IntervalTree() {
-	delete this->data;
-	delete this->left;
-	delete this->right;
+  if (this->data != NULL) delete this->data;
+  if (this->left != NULL) delete this->left;
+  if (this->right != NULL) delete this->right;
 }
 
 /**
@@ -241,50 +302,50 @@ IntervalTree<T,R>::~IntervalTree() {
 template <class T, class R> 
 const std::vector<T>
 IntervalTree<T,R>::intersectingPoint(const R point) const {
-	if (point > this->data->mid) {
-		// we know all intervals in this->data begin before p (if they began 
-		// after p, they would have not included mid) we just need to find 
-		// those that end after p
-		std::vector<T> endAfterP;
-		for (typename std::vector<T>::iterator it = this->data->ends.begin();
-		     it != this->data->ends.end(); it++) {
-			if (this->getEnd(*it) >= point) endAfterP.push_back(*it);
-			else break;
-		}
-		
-		if (this->right != NULL) {
-			std::vector<T> descendRight = this->right->intersectingPoint(point);
-			for (typename std::vector<T>::iterator it = descendRight.begin();
-			     it != descendRight.end(); it++) {
-				endAfterP.push_back(*it);
-			}
-		}
-		return endAfterP;
-	}
-	if (point < this->data->mid) {
-		// we know all intervals in this->data end after p (if they ended before
-		// p, they would have not included mid) we just need to find those that 
-		// start before p
-		std::vector<T> startBeforeP;
-		for (typename std::vector<T>::iterator it = this->data->starts.begin();
-		     it != this->data->starts.end(); it++) {
-			if (this->getStart(*it) <= point) startBeforeP.push_back(*it);
-			else break;
-		}
-		
-		if (this->left != NULL) {
-			std::vector<T> descendLeft = this->left->intersectingPoint(point);
-			for (typename std::vector<T>::iterator it = descendLeft.begin();
-			     it != descendLeft.end(); it++) {
-				startBeforeP.push_back(*it);
-			}
-		}
-		return startBeforeP;
-	}
+  if (point > this->data->mid) {
+    // we know all intervals in this->data begin before p (if they began
+    // after p, they would have not included mid) we just need to find
+    // those that end after p
+    std::vector<T> endAfterP;
+    for (typename std::vector<T>::iterator it = this->data->ends.begin();
+         it != this->data->ends.end(); it++) {
+      if (this->getEnd(*it) >= point) endAfterP.push_back(*it);
+      else break;
+    }
 
-	// must be a perfect match, since point is neither > nor < mid
-	assert(point == this->data->mid);
-	return this->data->ends;
+    if (this->right != NULL) {
+      std::vector<T> descendRight = this->right->intersectingPoint(point);
+      for (typename std::vector<T>::iterator it = descendRight.begin();
+           it != descendRight.end(); it++) {
+        endAfterP.push_back(*it);
+      }
+    }
+    return endAfterP;
+  }
+  if (point < this->data->mid) {
+    // we know all intervals in this->data end after p (if they ended before
+    // p, they would have not included mid) we just need to find those that
+    // start before p
+    std::vector<T> startBeforeP;
+    for (typename std::vector<T>::iterator it = this->data->starts.begin();
+         it != this->data->starts.end(); it++) {
+      if (this->getStart(*it) <= point) startBeforeP.push_back(*it);
+      else break;
+    }
+
+    if (this->left != NULL) {
+      std::vector<T> descendLeft = this->left->intersectingPoint(point);
+      for (typename std::vector<T>::iterator it = descendLeft.begin();
+           it != descendLeft.end(); it++) {
+        startBeforeP.push_back(*it);
+      }
+    }
+    return startBeforeP;
+  }
+
+  // must be a perfect match, since point is neither > nor < mid
+  assert(point == this->data->mid);
+  return this->data->ends;
 }
 
 /**

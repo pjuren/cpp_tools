@@ -47,22 +47,22 @@ using std::vector;
  */
 class TestInterval {
 public:
-    TestInterval(size_t start, size_t end) {this->start=start; this->end=end;};
-    const size_t getStart() const {return this->start;}
-    const size_t getEnd() const {return this->end;}
-    bool operator==(const TestInterval other) const {
-      return ((this->start == other.start) && (this->end == other.end));
-    }
-    bool operator!=(const TestInterval other) const {
-      return ((this->start != other.start) || (this->end != other.end));
-    }
-    static bool compare(TestInterval i1, TestInterval i2){
-      if (i1.getStart() == i2.getStart()) return i1.getEnd() < i2.getEnd();
-      return i1.getStart() < i2.getStart();
-    }
+  TestInterval(size_t start, size_t end) {this->start=start; this->end=end;};
+  const size_t getStart() const {return this->start;}
+  const size_t getEnd() const {return this->end;}
+  bool operator==(const TestInterval other) const {
+    return ((this->start == other.start) && (this->end == other.end));
+  }
+  bool operator!=(const TestInterval other) const {
+    return ((this->start != other.start) || (this->end != other.end));
+  }
+  static bool compare(TestInterval i1, TestInterval i2){
+    if (i1.getStart() == i2.getStart()) return i1.getEnd() < i2.getEnd();
+    return i1.getStart() < i2.getStart();
+  }
 private:
-    size_t start;
-    size_t end;
+  size_t start;
+  size_t end;
 };
 
 std::ostream& operator<<(std::ostream& os, const TestInterval& t) {
@@ -145,67 +145,22 @@ TEST(testIntersectingPointEnd) {
   EXPECT_EQUAL_STL_CONTAINER(t.intersectingPoint(75), expectedAns);
 }
 
+/**
+ * \brief Test that IntervalTrees can be inserted into STL containers
+ */
+TEST(testSTLSafeInsert) {
+  // have a for loop here so trees are created within it's scope and then
+  // the originals are gone by the time we end the loop; this checks that
+  // pointers are copied properly -- as the original objects will be destroyed.
+  vector< IntervalTree<TestInterval,size_t> > v;
+  for (size_t i = 0; i < 1; ++i) {
+    IntervalTree<TestInterval,size_t> t (IntervalFactory::getTestCase(1),
+                                         &getStartTest, &getEndTest);
+    v.push_back(t);
+  }
 
-
-/*
-
-void 
-TestIntervalTree::testIntersectingInterval() {
-	cerr << "\ttesting intersecting interval...";
-	double r = ((double) rand()) / RAND_MAX;
-	double s = (r * (MAX_INTERVAL - MIN_INTERVAL)) + MIN_INTERVAL;
-	r = ((double) rand()) / RAND_MAX;
-	double e = (r * (MAX_INTERVAL - s)) + s;
-			
-	// do it the slow way...
-	vector<TestInterval> correctAnswer, actualAnswer;
-	for (vector<TestInterval>::iterator it = this->intervals.begin(); it != this->intervals.end(); it++) {
-		if (((s >= it->getStart()) && (s <= it->getEnd())) ||
-				((e >= it->getStart()) && (e <= it->getEnd())) ||
-				((s <= it->getStart()) && (e >= it->getEnd())))
-			correctAnswer.push_back(*it);
-	}
-	sort(correctAnswer.begin(), correctAnswer.end(), TestInterval::compare);
-	
-	// now use the tree
-	actualAnswer = this->theTree->intersectingInterval(s,e);
-	sort(actualAnswer.begin(), actualAnswer.end(), TestInterval::compare);
-	
-	// compare -- we print out some debugging info here if things go wrong..
-	assert(actualAnswer == correctAnswer);
-	cerr << "[passed]" << endl;
+  vector<TestInterval> expectedAns;
+  expectedAns.push_back(TestInterval(40,75));
+  EXPECT_EQUAL_STL_CONTAINER(v.back().intersectingPoint(40), expectedAns);
 }
-
-
-void 
-TestIntervalTree::testEndPoints() {
-	cerr << "\ttesting end points...";
-	TestInterval interval = TestInterval(5.0,10.0);
-	vector<TestInterval> intervals;
-	intervals.push_back(interval);
-	IntervalTree<TestInterval,double> tree = IntervalTree<TestInterval,double>(intervals, &getStartTest, &getEndTest);
-	
-	assert(tree.intersectingPoint(4.0).size() == 0);
-	assert(tree.intersectingPoint(5.0).size() == 1);
-	assert(tree.intersectingPoint(6.0).size() == 1);
-	assert(tree.intersectingPoint(9.0).size() == 1);
-	assert(tree.intersectingPoint(10.0).size() == 1);
-	assert(tree.intersectingPoint(11.0).size() == 0);
-	cerr << "[passed]" << endl;
-}
-	
-void 
-TestIntervalTree::testSquash() {
-	cerr << "\ttesting squash...";
-	vector<TestInterval> squashed = this->theTree->squash();
-		
-	sort(this->intervals.begin(), this->intervals.end(), TestInterval::compare);
-	sort(squashed.begin(), squashed.end(), TestInterval::compare);
-	assert(this->intervals == squashed);
-	cerr << "[passed]" << endl;
-}
-
-
-*/
-
 
