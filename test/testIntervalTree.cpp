@@ -32,15 +32,17 @@
 
 // stl includes
 #include <string>
-#include <sstream> 
+#include <sstream>
 #include <iostream>
 #include <assert.h>
+#include <tr1/unordered_map>
 
 // bring the following into the local name-space
 using std::cerr;
 using std::endl;
 using std::string;
 using std::vector;
+using std::tr1::unordered_map;
 
 /**
  * \brief a test class for use in testing the interval tree class
@@ -164,3 +166,17 @@ TEST(testSTLSafeInsert) {
   EXPECT_EQUAL_STL_CONTAINER(v.back().intersectingPoint(40), expectedAns);
 }
 
+/**
+ * \brief Test that IntervalTrees can be inserted into STL maps. This is a
+ *        good test because it stretches the assignment operator in a way
+ *        the vector case above doesn't.
+ */
+TEST(testSTLMapSafe) {
+  typedef IntervalTree<TestInterval, size_t> ChainTree;
+  typedef unordered_map<string, ChainTree> ChainTreeMap;
+
+  ChainTreeMap chain_trees;
+  const ChainTree c (IntervalFactory::getTestCase(1), &getStartTest, &getEndTest);
+  chain_trees["test"] = c;
+  EXPECT_EQUAL(chain_trees["test"].size(), 6)
+}

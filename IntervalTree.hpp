@@ -39,7 +39,7 @@
 #include <vector>
 #include <string>
 #include <exception>
-#include <sstream> 
+#include <sstream>
 #include <iostream>
 #include <assert.h>
 #include <algorithm>
@@ -67,7 +67,7 @@ template <class T, class R>
 class IntervalComparator {
 public:
 	IntervalComparator(R (*compFunc)(const T&)) { this->compFunc = compFunc; }
-  bool operator()(T i1, T i2){ return this->compFunc(i1) < this->compFunc(i2); } 
+  bool operator()(T i1, T i2){ return this->compFunc(i1) < this->compFunc(i2); }
 private:
 	R (*compFunc)(const T&);
 };
@@ -83,7 +83,10 @@ public :
                    R (*getEnd)(const T&));
   IntervalTreeNode(const IntervalTreeNode<T,R> &n);
   ~IntervalTreeNode();
+	IntervalTreeNode<T,R>& operator=(const IntervalTreeNode<T,R>& other);
+	void swap(IntervalTreeNode<T,R>& other);
   std::string toString();
+
   std::vector<T> starts;
   std::vector<T> ends;
   double mid;
@@ -103,6 +106,8 @@ public:
                R (*getEnd)(const T&));
   IntervalTree(const IntervalTree<T,R> &t);
   ~IntervalTree();
+	IntervalTree<T,R>& operator=(const IntervalTree<T,R>& other);
+	void swap(IntervalTree<T,R>& other);
 
   // inspectors
   const std::vector<T> intersectingPoint(const R point) const;
@@ -134,7 +139,7 @@ IntervalTreeNode<T,R>::IntervalTreeNode() : mid(0), getStart(NULL),
  * \brief IntervalTreeNode constructor
  * \param intervals TODO
  */
-template <class T, class R> 
+template <class T, class R>
 IntervalTreeNode<T,R>::IntervalTreeNode(const std::vector<T> intervals,
                                         const double mid, R (*getStart)(const T&),
                                         R (*getEnd)(const T&)) {
@@ -171,9 +176,33 @@ IntervalTreeNode<T,R>::~IntervalTreeNode() {
 }
 
 /**
+* \brief assignment; have to be careful here, since we have pointer members.
+*/
+template <class T, class R>
+IntervalTreeNode<T,R>&
+IntervalTreeNode<T,R>::operator=(const IntervalTreeNode<T,R>& other) {
+	IntervalTreeNode<T,R> tmp (other);
+	this->swap(tmp);
+	return *this;
+}
+
+/**
+* \brief swap the contents of this node with another one.
+*/
+template <class T, class R>
+void
+IntervalTreeNode<T,R>::swap(IntervalTreeNode<T,R>& other) {
+	std::swap(this->mid, other.mid);
+	this->starts.swap(other.starts);
+	this->ends.swap(other.ends);
+	std::swap(this->getStart, other.getStart);
+	std::swap(this->getEnd, other.getEnd);
+}
+
+/**
  * \brief return a string representation of an IntervalTreeNode
  */
-template <class T, class R> 
+template <class T, class R>
 std::string
 IntervalTreeNode<T,R>::toString() {
   std::ostringstream s;
@@ -209,7 +238,7 @@ IntervalTree<T,R>::IntervalTree() : data(NULL), left(NULL), right(NULL),
  * \param intervals list of intervals, doesn't need to be sorted in any way.
  * \throws IntervalTreeError if no intervals are provided
  */
-template <class T, class R> 
+template <class T, class R>
 IntervalTree<T,R>::IntervalTree(const std::vector<T> &intervals,
                                 R (*getStart)(const T&), R (*getEnd)(const T&)) {
   this->left = NULL;
@@ -220,44 +249,44 @@ IntervalTree<T,R>::IntervalTree(const std::vector<T> &intervals,
 
   // because we're going to sort them, and want to force const on paramater
   std::vector<T> cIntervals = std::vector<T>(intervals);
-	
+
   // can't build a tree with no intervals...
   if (intervals.size() <= 0)
-    throw IntervalTreeError("Interval tree constructor got empty set of " 
+    throw IntervalTreeError("Interval tree constructor got empty set of "
 														"intervals");
-  
+
   // sort the list by start index (this is arbitrary and just lets us try to
   // split it evenly)
   sort(cIntervals.begin(), cIntervals.end(), startComp);
-  
+
   // pick a mid-point and split the list
   T midInt = cIntervals[intervals.size() / 2];
-  R mid = ((this->getEnd(midInt) - this->getStart(midInt)) / 2) 
+  R mid = ((this->getEnd(midInt) - this->getStart(midInt)) / 2)
   						 + this->getStart(midInt);
-  
+
   //cout << "picked mid as " << mid << endl;
   //cout << this->toString() << endl;
-  
+
   std::vector<T> here, lt, rt;
   for (typename std::vector<T>::iterator it = cIntervals.begin();
        it != cIntervals.end(); it++) {
     // place all intervals that end before <mid> into the left subtree
     if (this->getEnd(*it) < mid) lt.push_back(*it);
     else {
-    	// place all intervals that begin after <mid> into the right subtree  
-    	if (this->getStart(*it) > mid) rt.push_back(*it);    
+    	// place all intervals that begin after <mid> into the right subtree
+    	if (this->getStart(*it) > mid) rt.push_back(*it);
 			// everything else must overlap mid, so we keep it here
 			else here.push_back(*it);
     }
   }
-  
+
   if (here.size() <= 0) {
   	std::ostringstream msg;
-  	msg << "fatal error: picked mid point at " << mid 
+  	msg << "fatal error: picked mid point at " << mid
         << " but this failed to intersect anything!";
     throw IntervalTreeError(msg.str().c_str());
   }
-      
+
   if (lt.size() > 0) this->left = new IntervalTree(lt, getStart, getEnd);
   if (rt.size() > 0) this->right = new IntervalTree(rt, getStart, getEnd);
   this->data = new IntervalTreeNode<T,R>(here, mid, this->getStart, this->getEnd);
@@ -286,11 +315,36 @@ IntervalTree<T,R>::IntervalTree(const IntervalTree<T,R> &t) {
 /**
  * \brief Destructor for IntervalTree
  */
-template <class T, class R> 
+template <class T, class R>
 IntervalTree<T,R>::~IntervalTree() {
   if (this->data != NULL) delete this->data;
   if (this->left != NULL) delete this->left;
   if (this->right != NULL) delete this->right;
+}
+
+/**
+ * \brief assignment operator; need to be careful here, since we have
+ *				pointer members. Swap idiom should work for copy-assignment
+ */
+template <class T, class R>
+IntervalTree<T,R>&
+IntervalTree<T,R>::operator=(const IntervalTree<T,R>& other) {
+	IntervalTree<T,R> tmp (other);
+	this->swap(tmp);
+	return *this;
+}
+
+/**
+ * \brief swap the contents of this IntervalTree with another
+ */
+template <class T, class R>
+void
+IntervalTree<T,R>::swap(IntervalTree<T,R>& other) {
+	std::swap(this->data, other.data);
+	std::swap(this->left, other.left);
+	std::swap(this->right, other.right);
+	std::swap(this->getStart, other.getStart);
+	std::swap(this->getEnd, other.getEnd);
 }
 
 /**
@@ -299,7 +353,7 @@ IntervalTree<T,R>::~IntervalTree() {
  * \param point the point of intersection to test against
  * \return vector of intersected intervals
  */
-template <class T, class R> 
+template <class T, class R>
 const std::vector<T>
 IntervalTree<T,R>::intersectingPoint(const R point) const {
   if (point > this->data->mid) {
@@ -355,7 +409,7 @@ IntervalTree<T,R>::intersectingPoint(const R point) const {
  * \param end TODO
  * \return: vector of intersected intervals
  */
-template <class T, class R> 
+template <class T, class R>
 const std::vector<T>
 IntervalTree<T,R>::intersectingInterval(const R start, const R end) const {
   // find all intervals in this node that intersect start and end
@@ -369,7 +423,7 @@ IntervalTree<T,R>::intersectingInterval(const R start, const R end) const {
           intersecting.push_back(*it);
       }
   }
-	
+
   // process left subtree (if we have one) if the requested interval begins
   // before mid
   if ((this->left != NULL) && (start <= this->data->mid)) {
@@ -380,7 +434,7 @@ IntervalTree<T,R>::intersectingInterval(const R start, const R end) const {
   	}
   }
 
-  // process right subtree (if we have one) if the requested interval 
+  // process right subtree (if we have one) if the requested interval
   // ends after mid
   if ((this->right != NULL) && (end >= this->data->mid)) {
     std::vector<T> desendRight = this->right->intersectingInterval(start, end);
@@ -389,7 +443,7 @@ IntervalTree<T,R>::intersectingInterval(const R start, const R end) const {
       intersecting.push_back(*it);
   	}
   }
-  
+
   return intersecting;
 }
 
@@ -431,14 +485,14 @@ IntervalTree<T,R>::size() const {
 /**
  * \brief return a string representation of an IntervalTree
  */
-template <class T, class R> 
+template <class T, class R>
 const std::string
 IntervalTree<T,R>::toString() const {
 	std::string left = "<EMPTY>", right = "<EMPTY>";
 	if (this->left != NULL) left = this->left->toString();
 	if (this->right != NULL) right = this->right->toString();
-	return this->data->toString() + "\n** left ** " + left + 
+	return this->data->toString() + "\n** left ** " + left +
 				 "\n** right ** " + right;
 }
-	
+
 #endif
