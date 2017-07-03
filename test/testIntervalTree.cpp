@@ -24,18 +24,18 @@
  *
  */
 
+// stl includes
+#include <string>
+#include <sstream>
+#include <iostream>
+#include <cassert>
+#include <tr1/unordered_map>
+
 // TinyTest includes
 #include "TinyTest.hpp"
 
 // local includes
 #include "IntervalTree.hpp"
-
-// stl includes
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <assert.h>
-#include <tr1/unordered_map>
 
 // bring the following into the local name-space
 using std::cerr;
@@ -48,8 +48,10 @@ using std::tr1::unordered_map;
  * \brief a test class for use in testing the interval tree class
  */
 class TestInterval {
-public:
-  TestInterval(size_t start, size_t end) {this->start=start; this->end=end;};
+ public:
+  TestInterval(size_t start, size_t end) {
+    this->start = start; this->end = end;
+  }
   const size_t getStart() const {return this->start;}
   const size_t getEnd() const {return this->end;}
   bool operator==(const TestInterval other) const {
@@ -58,11 +60,11 @@ public:
   bool operator!=(const TestInterval other) const {
     return ((this->start != other.start) || (this->end != other.end));
   }
-  static bool compare(TestInterval i1, TestInterval i2){
+  static bool compare(TestInterval i1, TestInterval i2) {
     if (i1.getStart() == i2.getStart()) return i1.getEnd() < i2.getEnd();
     return i1.getStart() < i2.getStart();
   }
-private:
+ private:
   size_t start;
   size_t end;
 };
@@ -81,13 +83,13 @@ static size_t getEndTest(const TestInterval &i) { return i.getEnd(); }
  *        interval tree class.
  */
 class IntervalFactory {
-public:
+ public:
   static const vector<TestInterval>& getTestCase(size_t n) {
     static IntervalFactory ifactory;
     return ifactory.cases[n];
   }
 
-private:
+ private:
   IntervalFactory() {
     // test case 0 -- empty set
     cases.push_back(vector<TestInterval>());
@@ -95,12 +97,12 @@ private:
     // test case 1 -- no overlapping intervals, intervals are in sorted order
     //                final interval has same start and end.
     cases.push_back(vector<TestInterval>());
-    cases.back().push_back(TestInterval(10,20));
-    cases.back().push_back(TestInterval(40,75));
-    cases.back().push_back(TestInterval(78,85));
-    cases.back().push_back(TestInterval(89,94));
-    cases.back().push_back(TestInterval(96,97));
-    cases.back().push_back(TestInterval(99,99));
+    cases.back().push_back(TestInterval(10, 20));
+    cases.back().push_back(TestInterval(40, 75));
+    cases.back().push_back(TestInterval(78, 85));
+    cases.back().push_back(TestInterval(89, 94));
+    cases.back().push_back(TestInterval(96, 97));
+    cases.back().push_back(TestInterval(99, 99));
   }
 
   vector< vector<TestInterval> > cases;
@@ -111,11 +113,11 @@ private:
  *        empty set of intervals throws an IntervalTreeException
  */
 TEST(testEmptyThrowsException) {
-  // TODO -- can be done more elegantly once TinyTest supports tests for
-  //         exceptions
+  // TODO(pjuren) -- can be done more elegantly once TinyTest supports tests
+  //                 for exceptions
   bool exceptionHappened = false;
   try {
-    IntervalTree<TestInterval,size_t> t (IntervalFactory::getTestCase(0),
+    IntervalTree<TestInterval, size_t> t(IntervalFactory::getTestCase(0),
                                          &getStartTest, &getEndTest);
   } catch (IntervalTreeError e) {
     exceptionHappened = true;
@@ -128,10 +130,10 @@ TEST(testEmptyThrowsException) {
  *        when the point lays on the start of one of the intervals
  */
 TEST(testIntersectingPointStart) {
-  IntervalTree<TestInterval,size_t> t (IntervalFactory::getTestCase(1),
+  IntervalTree<TestInterval, size_t> t(IntervalFactory::getTestCase(1),
                                        &getStartTest, &getEndTest);
   vector<TestInterval> expectedAns;
-  expectedAns.push_back(TestInterval(40,75));
+  expectedAns.push_back(TestInterval(40, 75));
   EXPECT_EQUAL_STL_CONTAINER(t.intersectingPoint(40), expectedAns);
 }
 
@@ -140,10 +142,10 @@ TEST(testIntersectingPointStart) {
  *        when the point lays on the end of one of the intervals
  */
 TEST(testIntersectingPointEnd) {
-  IntervalTree<TestInterval,size_t> t (IntervalFactory::getTestCase(1),
+  IntervalTree<TestInterval, size_t> t(IntervalFactory::getTestCase(1),
                                        &getStartTest, &getEndTest);
   vector<TestInterval> expectedAns;
-  expectedAns.push_back(TestInterval(40,75));
+  expectedAns.push_back(TestInterval(40, 75));
   EXPECT_EQUAL_STL_CONTAINER(t.intersectingPoint(75), expectedAns);
 }
 
@@ -154,15 +156,15 @@ TEST(testSTLSafeInsert) {
   // have a for loop here so trees are created within it's scope and then
   // the originals are gone by the time we end the loop; this checks that
   // pointers are copied properly -- as the original objects will be destroyed.
-  vector< IntervalTree<TestInterval,size_t> > v;
+  vector< IntervalTree<TestInterval, size_t> > v;
   for (size_t i = 0; i < 1; ++i) {
-    IntervalTree<TestInterval,size_t> t (IntervalFactory::getTestCase(1),
+    IntervalTree<TestInterval, size_t> t(IntervalFactory::getTestCase(1),
                                          &getStartTest, &getEndTest);
     v.push_back(t);
   }
 
   vector<TestInterval> expectedAns;
-  expectedAns.push_back(TestInterval(40,75));
+  expectedAns.push_back(TestInterval(40, 75));
   EXPECT_EQUAL_STL_CONTAINER(v.back().intersectingPoint(40), expectedAns);
 }
 
@@ -176,7 +178,8 @@ TEST(testSTLMapSafe) {
   typedef unordered_map<string, ChainTree> ChainTreeMap;
 
   ChainTreeMap chain_trees;
-  const ChainTree c (IntervalFactory::getTestCase(1), &getStartTest, &getEndTest);
+  const ChainTree c(IntervalFactory::getTestCase(1), &getStartTest,
+                    &getEndTest);
   chain_trees["test"] = c;
   EXPECT_EQUAL(chain_trees["test"].size(), 6)
 }
