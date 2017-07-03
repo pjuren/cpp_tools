@@ -60,6 +60,9 @@ class TestInterval {
   bool operator!=(const TestInterval other) const {
     return ((this->start != other.start) || (this->end != other.end));
   }
+  bool operator<(const TestInterval &o) const {
+    return this->start < o.start;
+  }
   static bool compare(TestInterval i1, TestInterval i2) {
     if (i1.getStart() == i2.getStart()) return i1.getEnd() < i2.getEnd();
     return i1.getStart() < i2.getStart();
@@ -103,6 +106,13 @@ class IntervalFactory {
     cases.back().push_back(TestInterval(89, 94));
     cases.back().push_back(TestInterval(96, 97));
     cases.back().push_back(TestInterval(99, 99));
+
+    // test case 2 -- some overlapping intervals, not in sorted order
+    cases.push_back(vector<TestInterval>());
+    cases.back().push_back(TestInterval(21, 28));
+    cases.back().push_back(TestInterval(10, 20));
+    cases.back().push_back(TestInterval(15, 20));
+    cases.back().push_back(TestInterval(11, 23));
   }
 
   vector< vector<TestInterval> > cases;
@@ -142,11 +152,16 @@ TEST(testIntersectingPointStart) {
  *        when the point lays on the end of one of the intervals
  */
 TEST(testIntersectingPointEnd) {
-  IntervalTree<TestInterval, size_t> t(IntervalFactory::getTestCase(1),
-                                       &getStartTest, &getEndTest);
+  typedef IntervalTree<TestInterval, size_t> ITree;
+  ITree t(IntervalFactory::getTestCase(1), &getStartTest, &getEndTest);
   vector<TestInterval> expectedAns;
   expectedAns.push_back(TestInterval(40, 75));
   EXPECT_EQUAL_STL_CONTAINER(t.intersectingPoint(75), expectedAns);
+
+  ITree t2(IntervalFactory::getTestCase(1), &getStartTest, &getEndTest,
+           ITree::OPEN_ENDED);
+  expectedAns.clear();
+  EXPECT_EQUAL_STL_CONTAINER(t2.intersectingPoint(75), expectedAns);
 }
 
 /**
@@ -182,4 +197,58 @@ TEST(testSTLMapSafe) {
                     &getEndTest);
   chain_trees["test"] = c;
   EXPECT_EQUAL(chain_trees["test"].size(), 6)
+}
+
+/**
+ * \brief Test finding overlapping intervals by search interval when
+ *        intervals are closed-ended
+ */
+TEST(testIntersectingIntervalClosed) {
+  typedef IntervalTree<TestInterval, size_t> ITree;
+  ITree t(IntervalFactory::getTestCase(2), &getStartTest, &getEndTest);
+
+  // start of search region overlaps end of some tree-regions
+  vector<TestInterval> res = t.intersectingInterval(20, 30);
+  vector<TestInterval> expectedAns;
+  expectedAns.push_back(TestInterval(21, 28));
+  expectedAns.push_back(TestInterval(10, 20));
+  expectedAns.push_back(TestInterval(15, 20));
+  expectedAns.push_back(TestInterval(11, 23));
+  sort(expectedAns.begin(), expectedAns.end());
+  sort(res.begin(), res.end());
+  EXPECT_EQUAL_STL_CONTAINER(res, expectedAns);
+
+  // end of search region overlaps start of some tree-regions
+  res = t.intersectingInterval(3, 21);
+  sort(res.begin(), res.end());
+  EXPECT_EQUAL_STL_CONTAINER(res, expectedAns);
+}
+
+/**
+ * \brief Test finding overlapping intervals by search interval when
+ *        intervals are open-ended
+ */
+TEST(testIntersectingIntervalOpen) {
+  typedef IntervalTree<TestInterval, size_t> ITree;
+  ITree t(IntervalFactory::getTestCase(2), &getStartTest, &getEndTest,
+          ITree::OPEN_ENDED);
+
+  // start of search region overlaps end of some tree-regions
+  vector<TestInterval> res = t.intersectingInterval(20, 30);
+  vector<TestInterval> expectedAns;
+  expectedAns.push_back(TestInterval(21, 28));
+  expectedAns.push_back(TestInterval(11, 23));
+  sort(expectedAns.begin(), expectedAns.end());
+  sort(res.begin(), res.end());
+  EXPECT_EQUAL_STL_CONTAINER(res, expectedAns);
+
+  // end of search region overlaps start of some tree-regions
+  expectedAns.clear();
+  expectedAns.push_back(TestInterval(10, 20));
+  expectedAns.push_back(TestInterval(15, 20));
+  expectedAns.push_back(TestInterval(11, 23));
+  res = t.intersectingInterval(3, 21);
+  sort(res.begin(), res.end());
+  sort(expectedAns.begin(), expectedAns.end());
+  EXPECT_EQUAL_STL_CONTAINER(res, expectedAns);
 }

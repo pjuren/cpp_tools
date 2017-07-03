@@ -73,6 +73,10 @@ class IntervalTree {
   const std::vector<T> squash() const;
   const int size() const;
   const std::string toString() const;
+
+  // constants
+  static const bool OPEN_ENDED = true;
+
  private:
   IntervalTreeNode<T, R>* data;
   IntervalTree<T, R>* left;
@@ -152,8 +156,10 @@ IntervalTree<T, R>::IntervalTree(const std::vector<T> &intervals,
     throw IntervalTreeError(msg.str().c_str());
   }
 
-  if (lt.size() > 0) this->left = new IntervalTree(lt, getStart, getEnd);
-  if (rt.size() > 0) this->right = new IntervalTree(rt, getStart, getEnd);
+  if (lt.size() > 0) this->left = new IntervalTree(lt, getStart, getEnd,
+                                                   openEnded);
+  if (rt.size() > 0) this->right = new IntervalTree(rt, getStart, getEnd,
+                                                    openEnded);
   this->data = new IntervalTreeNode<T, R>(here, mid, this->getStart,
                                           this->getEnd);
 }
@@ -182,6 +188,9 @@ IntervalTree<T, R>::IntervalTree(const IntervalTree<T, R> &t) {
   // function pointers can be copied shallow
   this->getStart = t.getStart;
   this->getEnd = t.getEnd;
+
+  // open-ended is shallow
+  this->openEnded = t.openEnded;
 }
 
 /**
@@ -217,6 +226,7 @@ IntervalTree<T, R>::swap(IntervalTree<T, R>& other) {
   std::swap(this->right, other.right);
   std::swap(this->getStart, other.getStart);
   std::swap(this->getEnd, other.getEnd);
+  std::swap(this->openEnded, other.openEnded);
 }
 
 /**
@@ -294,11 +304,20 @@ IntervalTree<T, R>::intersectingInterval(const R start, const R end) const {
   std::vector<T> intersecting;
   for (typename std::vector<T>::iterator it = this->data->starts.begin();
        it != this->data->starts.end(); it++) {
-      if (((this->getStart(*it) >= start) && (this->getStart(*it) < end)) ||
-            ((this->getEnd(*it) > start) && (this->getEnd(*it) <= end)) ||
-            ((start >= this->getStart(*it) && start < this->getEnd(*it))) ||
-            ((end > this->getStart(*it)) && (end <= this->getEnd(*it)))) {
-          intersecting.push_back(*it);
+      if (this->openEnded) {
+        if (((this->getStart(*it) >= start) && (this->getStart(*it) < end)) ||
+              ((this->getEnd(*it) > start) && (this->getEnd(*it) < end)) ||
+              ((start >= this->getStart(*it) && start < this->getEnd(*it))) ||
+              ((end > this->getStart(*it)) && (end < this->getEnd(*it)))) {
+            intersecting.push_back(*it);
+        }
+      } else {
+        if (((this->getStart(*it) >= start) && (this->getStart(*it) <= end)) ||
+              ((this->getEnd(*it) >= start) && (this->getEnd(*it) <= end)) ||
+              ((start >= this->getStart(*it) && start <= this->getEnd(*it))) ||
+              ((end >= this->getStart(*it)) && (end <= this->getEnd(*it)))) {
+            intersecting.push_back(*it);
+        }
       }
   }
 
