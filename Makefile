@@ -17,14 +17,13 @@ package = cpp_tools
 version = 0.0.1
 tarname = $(package)
 distdir = $(tarname)-$(version)
-	
+
 test:
 	@make -C test OPT=1 test
 .PHONY: test
 
 clean:
 	@make -C test clean
+	@make -C TinyTest clean
 	@rm -rf *.o
 .PHONY: clean
-
-

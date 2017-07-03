@@ -16,7 +16,7 @@
 # what unit tests to build
 TESTS=testIntervalTree
 
-# where is TinyTest, the smithlab common library and the common code for 
+# where is TinyTest, the smithlab common library and the common code for
 # this package?
 TINY_TEST=../TinyTest
 COMMON=..
@@ -26,7 +26,7 @@ ifeq "$(shell uname)" "Darwin"
 CPPFLAGS += -arch x86_64
 ifeq "$(shell if [ `sysctl -n kern.osrelease | cut -d . -f 1` -ge 13 ];\
               then echo 'true'; fi)" "true"
-CPPFLAGS += -stdlib=libstdc++
+CPPFLAGS += -std=c++11
 endif
 endif
 
@@ -44,18 +44,18 @@ ifdef OPT
 CPPFLAGS += $(OPTFLAGS)
 endif
 
-LIBS = -lgsl -lgslcblas 
+LIBS = -lgsl -lgslcblas
 INCLUDE_ARGS=-I$(TINY_TEST) -I$(COMMON)
 
 # test dependencies
-$(TESTS): $(addprefix $(TINY_TEST)/, TinyTest.o) 
+$(TESTS): $(addprefix $(TINY_TEST)/, TinyTest.o)
 #$(TESTS): $(addprefix $(COMMON)/, IntervalTree.o)
 
 test% : test%.cpp
 	$(CXX) $(CPPFLAGS) $(CFLAGS) $^ $(INCLUDE_ARGS) $(LIBS) -o $@
-	
+
 %.o: %.cpp %.hpp
-	$(CXX) $(CPPFLAGS) -c -o $@ $< $(INCLUDE_ARGS)	
+	$(CXX) $(CPPFLAGS) -c -o $@ $< $(INCLUDE_ARGS)
 
 test : $(TESTS)
 	for f in $^; do ./$$f; done
@@ -66,4 +66,3 @@ all : test
 
 clean :
 	rm -rf *.o *.dSYM $(TESTS)
-	 

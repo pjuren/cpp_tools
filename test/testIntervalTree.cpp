@@ -29,7 +29,7 @@
 #include <sstream>
 #include <iostream>
 #include <cassert>
-#include <tr1/unordered_map>
+#include <unordered_map>
 
 // TinyTest includes
 #include "TinyTest.hpp"
@@ -42,7 +42,7 @@ using std::cerr;
 using std::endl;
 using std::string;
 using std::vector;
-using std::tr1::unordered_map;
+using std::unordered_map;
 
 /**
  * \brief a test class for use in testing the interval tree class
