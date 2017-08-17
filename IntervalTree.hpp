@@ -243,8 +243,8 @@ IntervalTree<T, R>::intersectingPoint(const R point) const {
     // after p, they would have not included mid) we just need to find
     // those that end after p
     std::vector<T> endAfterP;
-    for (typename std::vector<T>::iterator it = this->data->ends.begin();
-         it != this->data->ends.end(); it++) {
+    for (auto it = this->data->ends.rbegin();
+         it != this->data->ends.rend(); it++) {
       if (((!this->openEnded) && (this->getEnd(*it) >= point)) ||
           ((this->openEnded) && (this->getEnd(*it) > point))) {
         endAfterP.push_back(*it);

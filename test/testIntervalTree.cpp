@@ -252,3 +252,24 @@ TEST(testIntersectingIntervalOpen) {
   sort(expectedAns.begin(), expectedAns.end());
   EXPECT_EQUAL_STL_CONTAINER(res, expectedAns);
 }
+
+/**
+ * \brief Test sort order on end of intervals; this test exposed a (now fixed)
+ *        bug where the regions were iterated in the wrong order when
+ *        considering their ends for intersecting points
+ */
+TEST(testIntersectingPointEndSortOrder) {
+  typedef IntervalTree<TestInterval, size_t> ITree;
+  vector<TestInterval> intervals;
+  intervals.push_back(TestInterval(01, 11));
+  intervals.push_back(TestInterval(20, 30));
+  intervals.push_back(TestInterval(25, 60));
+
+
+  ITree t(intervals, &getStartTest, &getEndTest, ITree::OPEN_ENDED);
+
+  // overlaps final region
+  vector<TestInterval> res = t.intersectingPoint(50);
+  EXPECT_EQUAL(res.size(), 1);
+  EXPECT_EQUAL(res[0], TestInterval(25, 60));
+}
